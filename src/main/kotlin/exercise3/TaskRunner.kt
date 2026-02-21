@@ -39,7 +39,44 @@ class UnknownTaskException(message: String) : Exception(message)
  *   from the input list (stable topological sort)
  */
 fun executionOrder(tasks: List<Task>): List<String> {
-    TODO("Implement me")
+    val taskMap = tasks.associateBy { it.name }
+    val result = mutableListOf<String>()
+
+    // Track tasks that are fully processed or currently in the recursion stack
+    val visited = mutableSetOf<String>()
+    val visiting = mutableSetOf<String>()
+
+    fun dfs(taskName: String) {
+        val task = taskMap[taskName] ?: throw UnknownTaskException("Task $taskName not found")
+
+        // If a task is already in visiting, that means a path leading back to itself was found -> Circular Dependency
+        if (taskName in visiting) {
+            throw CircularDependencyException("Cycle detected at task: $taskName")
+        }
+
+        // If already visited, skip to avoid duplicates
+        if (taskName in visited) return
+
+        visiting.add(taskName)
+
+        // Recursive step: Visit dependencies first
+        for (dependency in task.dependsOn) {
+            dfs(dependency)
+        }
+        visiting.remove(taskName)
+
+        visited.add(taskName)
+        result.add(taskName)
+    }
+
+    // Iterate original list to ensure stable ordering
+    for (task in tasks) {
+        if (task.name !in visited) {
+            dfs(task.name)
+        }
+    }
+
+    return result
 }
 
 /**
@@ -62,5 +99,31 @@ fun runTask(
     targetTask: String,
     executor: (String) -> Unit
 ) {
-    TODO("Implement me")
+    val taskMap = tasks.associateBy { it.name }
+
+    val executed = mutableSetOf<String>()
+    val visiting = mutableSetOf<String>()
+
+    fun execute(taskName: String) {
+        val task = taskMap[taskName] ?: throw UnknownTaskException("Task $taskName not found")
+
+        if (taskName in visiting) {
+            throw CircularDependencyException("Cycle detected involving task: $taskName")
+        }
+
+        if (taskName in executed) return
+
+        visiting.add(taskName)
+
+        for (dependency in task.dependsOn) {
+            execute(dependency)
+        }
+        visiting.remove(taskName)
+
+        // Execute the task after its dependencies
+        executor(taskName)
+        executed.add(taskName)
+    }
+
+    execute(targetTask)
 }

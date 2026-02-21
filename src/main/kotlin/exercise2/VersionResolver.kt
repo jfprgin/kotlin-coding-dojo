@@ -22,16 +22,30 @@ package exercise2
 data class SemVer(val major: Int, val minor: Int, val patch: Int) : Comparable<SemVer> {
 
     override fun compareTo(other: SemVer): Int {
-        TODO("Implement me")
+        return compareValuesBy(this, other,
+            { it.major }, { it.minor}, { it.patch }
+        )
     }
 
-    override fun toString(): String {
-        TODO("Implement me")
-    }
+    override fun toString(): String = "$major.$minor.$patch"
 
     companion object {
         fun parse(version: String): SemVer? {
-            TODO("Implement me")
+            val parts = version.split('.')
+
+            if (parts.size != 3) return null
+
+            return try {
+                val major = parts[0].toInt()
+                val minor = parts[1].toInt()
+                val patch = parts[2].toInt()
+
+                if (major < 0 || minor < 0 || patch < 0) return null
+
+                SemVer(major, minor, patch)
+            } catch (e: NumberFormatException) {
+                null
+            }
         }
     }
 }
@@ -51,7 +65,33 @@ data class SemVer(val major: Int, val minor: Int, val patch: Int) : Comparable<S
 data class Dependency(val name: String, val versionConstraint: String) {
 
     fun matches(version: SemVer): Boolean {
-        TODO("Implement me")
+        val constraints = versionConstraint.split(',')
+
+        return constraints.all { constraint ->
+            val trimmed = constraint.trim()
+            when {
+                trimmed.startsWith(">=") -> {
+                    val target = SemVer.parse(trimmed.substring(2))
+                    target != null && version >= target
+                }
+                trimmed.startsWith(">") -> {
+                    val target = SemVer.parse(trimmed.substring(1))
+                    target != null && version > target
+                }
+                trimmed.startsWith("<=") -> {
+                    val target = SemVer.parse(trimmed.substring(2))
+                    target != null && version <= target
+                }
+                trimmed.startsWith("<") -> {
+                    val target = SemVer.parse(trimmed.substring(1))
+                    target != null && version < target
+                }
+                else -> {
+                    val target = SemVer.parse(trimmed)
+                    target != null && version == target
+                }
+            }
+        }
     }
 }
 
@@ -73,5 +113,17 @@ fun resolveDependencies(
     dependencies: List<Dependency>,
     availableVersions: Map<String, List<SemVer>>
 ): Map<String, SemVer> {
-    TODO("Implement me")
+    val groupedConstraints = dependencies.groupBy { it.name }
+
+    return groupedConstraints.mapNotNull { (name, constraints) ->
+        val versions = availableVersions[name] ?: return@mapNotNull null
+
+        val bestVersion = versions
+            .filter { version ->
+                constraints.all { it.matches(version) }
+            }
+            .maxOrNull()
+
+        if (bestVersion != null) name to bestVersion else null
+    }.toMap()
 }

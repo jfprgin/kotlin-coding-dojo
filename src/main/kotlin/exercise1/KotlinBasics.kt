@@ -16,7 +16,14 @@ package exercise1
  * - If firstName or lastName is blank (empty or whitespace only), return null.
  */
 fun fullName(firstName: String, middleName: String?, lastName: String): String? {
-    TODO("Implement me")
+    if (firstName.isBlank() || lastName.isBlank()) {
+        return null
+    }
+    if (middleName == null) {
+        return "$firstName $lastName"
+    } else {
+        return "$firstName $middleName $lastName"
+    }
 }
 
 /**
@@ -29,7 +36,9 @@ fun fullName(firstName: String, middleName: String?, lastName: String): String? 
  * Empty strings should be ignored
  */
 fun groupAndCount(items: List<String>): Map<Char, Int> {
-    TODO("Implement me")
+    return items.filter { it.isNotEmpty() }
+        .groupingBy { it.first().lowercaseChar() }
+        .eachCount()
 }
 
 /**
@@ -42,7 +51,11 @@ fun groupAndCount(items: List<String>): Map<Char, Int> {
  * If n == 1, return the original string (no separator).
  */
 fun String.repeatWithSeparator(n: Int, separator: String): String {
-    TODO("Implement me")
+    if (n <= 0) return ""
+
+    if (n == 1) return this
+
+    return (1..n).joinToString(separator) { this }
 }
 
 /**
@@ -61,5 +74,26 @@ sealed class Expr {
 }
 
 fun evaluate(expr: Expr): Double? {
-    TODO("Implement me")
+
+    return when (expr) {
+        is Expr.Num -> expr.value
+        is Expr.Add -> {
+            val left = evaluate(expr.left)?: return null
+            val right = evaluate(expr.right)?: return null
+            left + right
+        }
+        is Expr.Div -> {
+            val left = evaluate(expr.left)?: return null
+            val right = (evaluate(expr.right))?: return null
+            if (right == 0.0) {
+                return null
+            }
+            left / right
+        }
+        is Expr.Mul -> {
+            val left = evaluate(expr.left)?: return null
+            val right = evaluate(expr.right)?: return null
+            left * right
+        }
+    }
 }
